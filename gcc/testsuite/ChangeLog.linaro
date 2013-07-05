@@ -1,6 +1,95 @@
+2013-07-03  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	Revert backport from trunk r198928.
+	2013-05-15  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/19599
+	* gcc.target/arm/pr40887.c: Adjust testcase.
+	* gcc.target/arm/pr19599.c: New test.
+
+2013-07-03  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	Revert backport from trunk 199439, 199533
+	2013-05-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/shrink-wrap-alloca.c: Use __builtin_alloca.
+
+	2013-05-30  Zhenqiang Chen  <zhenqiang.chen@linaro.org>
+
+	* gcc.dg/shrink-wrap-alloca.c: New added.
+	* gcc.dg/shrink-wrap-pretend.c: New added.
+	* gcc.dg/shrink-wrap-sibcall.c: New added.
+
+2013-07-02  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 200096
+
+	2013-06-14  Vidya Praveen <vidyapraveen@arm.com>
+
+	* gcc.target/aarch64/vect_smlal_1.c: New file.
+
+2013-07-02  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 200019
+	2013-06-12  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* gcc.target/arm/unaligned-memcpy-4.c (src, dst): Initialize
+	to ensure alignment.
+	* gcc.target/arm/unaligned-memcpy-3.c (src): Likewise.
+
+2013-06-20  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 200152
+	2013-06-17  Sofiane Naci  <sofiane.naci@arm.com>
+
+	* gcc.target/aarch64/scalar_intrinsics.c: Update.
+
+2013-06-20  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 200148
+	2013-06-17  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* gcc.target/arm/unaligned-memcpy-2.c (dest): Initialize to
+	ensure alignment.
+
+2013-06-20  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 199533
+	2013-05-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/shrink-wrap-alloca.c: Use __builtin_alloca.
+
+2013-06-20  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	Backport from trunk r198683.
+	2013-05-07  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	* lib/target-supports.exp (check_effective_target_hw): New
+	function.
+	* c-c++-common/asan/clone-test-1.c: Call
+	check_effective_target_hw.
+	* c-c++-common/asan/rlimit-mmap-test-1.c: Likewise.
+	* c-c++-common/asan/heap-overflow-1.c: Update regexps to accept
+	possible decorations.
+	* c-c++-common/asan/null-deref-1.c: Likewise.
+	* c-c++-common/asan/stack-overflow-1.c: Likewise.
+	* c-c++-common/asan/strncpy-overflow-1.c: Likewise.
+	* c-c++-common/asan/use-after-free-1.c: Likewise.
+	* g++.dg/asan/deep-thread-stack-1.C: Likewise.
+	* g++.dg/asan/large-func-test-1.C: Likewise.
+
 2013-06-11  Rob Savoye  <rob.savoye@linaro.org>
 
         GCC Linaro gcc-linaro-4.8-2013.06 released.
+
+2013-06-06  Zhenqiang Chen  <zhenqiang.chen@linaro.org>
+
+	Backport from mainline r199439.
+	2013-05-30  Zhenqiang Chen  <zhenqiang.chen@linaro.org>
+
+	* gcc.dg/shrink-wrap-alloca.c: New added.
+	* gcc.dg/shrink-wrap-pretend.c: New added.
+	* gcc.dg/shrink-wrap-sibcall.c: New added.
 
 2013-06-05  Christophe Lyon  <christophe.lyon@linaro.org>
 

@@ -1,3 +1,172 @@
+2013-07-03  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	Revert backport from trunk r198928,198973,199203.
+	2013-05-22  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/19599
+	PR target/57340
+	* config/arm/arm.c (any_sibcall_uses_r3): Rename to ..
+	(any_sibcall_could_use_r3): this and handle indirect calls.
+	(arm_get_frame_offsets): Rename use of any_sibcall_uses_r3.
+
+	2013-05-16  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/19599
+	* config/arm/arm.c (arm_function_ok_for_sibcall): Add check
+	for NULL decl.
+
+	2013-05-15  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/19599
+	* config/arm/predicates.md (call_insn_operand): New predicate.
+	* config/arm/constraints.md ("Cs", "Ss"):  New constraints.
+	* config/arm/arm.md (*call_insn, *call_value_insn): Match only
+	if insn is not a tail call.
+	(*sibcall_insn, *sibcall_value_insn): Adjust for tailcalling through
+	registers.
+	* config/arm/arm.h (enum reg_class): New caller save register class.
+	(REG_CLASS_NAMES): Likewise.
+	(REG_CLASS_CONTENTS): Likewise.
+	* config/arm/arm.c (arm_function_ok_for_sibcall): Allow tailcalling
+	without decls.
+
+2013-07-03  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	Revert backport from mainline (r199438, r199439)
+	2013-05-30  Zhenqiang Chen  <zhenqiang.chen@linaro.org>
+
+	* config/arm/arm.c (arm_add_cfa_adjust_cfa_note): New added.
+	(arm_emit_multi_reg_pop): Add REG_CFA_ADJUST_CFA notes.
+	(arm_emit_vfp_multi_reg_pop): Likewise.
+	(thumb2_emit_ldrd_pop): Likewise.
+	(arm_expand_epilogue): Add misc REG_CFA notes.
+	(arm_unwind_emit): Skip REG_CFA_ADJUST_CFA and REG_CFA_RESTORE.
+
+	2013-05-30  Bernd Schmidt  <bernds@codesourcery.com>
+		    Zhenqiang Chen  <zhenqiang.chen@linaro.org>
+
+	* config/arm/arm-protos.h: Add and update function protos.
+	* config/arm/arm.c (use_simple_return_p): New added.
+	(thumb2_expand_return): Check simple_return flag.
+	* config/arm/arm.md: Add simple_return and conditional simple_return.
+	* config/arm/iterators.md: Add iterator for return and simple_return.
+	* gcc.dg/shrink-wrap-alloca.c: New added.
+	* gcc.dg/shrink-wrap-pretend.c: New added.
+	* gcc.dg/shrink-wrap-sibcall.c: New added.
+
+2013-07-03  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	Backport from trunk r199640, 199705, 199733, 199734, 199739.
+	2013-06-04  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* rtl.def: Add extra fourth optional field to define_cond_exec.
+	* gensupport.c (process_one_cond_exec): Process attributes from
+	define_cond_exec.
+	* doc/md.texi: Document fourth field in define_cond_exec.
+
+	2013-06-05  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/arm/arm.md (enabled_for_depr_it): New attribute.
+	(predicable_short_it): Likewise.
+	(predicated): Likewise.
+	(enabled): Handle above.
+	(define_cond_exec): Set predicated attribute to yes.
+
+	2013-06-06  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/arm/sync.md (atomic_loaddi_1):
+	Disable predication for arm_restrict_it.
+	(arm_load_exclusive<mode>): Likewise.
+	(arm_load_exclusivesi): Likewise.
+	(arm_load_exclusivedi): Likewise.
+	(arm_load_acquire_exclusive<mode>): Likewise.
+	(arm_load_acquire_exclusivesi): Likewise.
+	(arm_load_acquire_exclusivedi): Likewise.
+	(arm_store_exclusive<mode>): Likewise.
+	(arm_store_exclusive<mode>): Likewise.
+	(arm_store_release_exclusivedi): Likewise.
+	(arm_store_release_exclusive<mode>): Likewise.
+
+	2013-06-06  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/arm/arm-ldmstm.ml: Set "predicable_short_it" to "no"
+	where appropriate.
+	* config/arm/ldmstm.md: Regenerate.
+
+	2013-06-06  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/arm/arm-fixed.md (add<mode>3,usadd<mode>3,ssadd<mode>3,
+	sub<mode>3, ussub<mode>3, sssub<mode>3, arm_ssatsihi_shift,
+	arm_usatsihi): Adjust alternatives for arm_restrict_it.
+
+2013-07-02  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 200096
+
+	2013-06-14  Vidya Praveen <vidyapraveen@arm.com>
+
+	* config/aarch64/aarch64-simd.md (aarch64_<su>mlal_lo<mode>):
+	New pattern.
+	(aarch64_<su>mlal_hi<mode>, aarch64_<su>mlsl_lo<mode>): Likewise.
+	(aarch64_<su>mlsl_hi<mode>, aarch64_<su>mlal<mode>): Likewise.
+	(aarch64_<su>mlsl<mode>): Likewise.
+
+2013-07-02  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 200062
+
+	2013-06-13  Bin Cheng  <bin.cheng@arm.com>
+	* fold-const.c (operand_equal_p): Consider NOP_EXPR and
+	CONVERT_EXPR as equal nodes.
+
+2013-07-02  Rob Savoye  <rob.savoye@linaro.org>
+	Backport from trunk 199810
+
+	2013-06-07  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/arm/arm.md (anddi3_insn): Remove duplicate alternatives.
+	Clean up alternatives.
+
+2013-06-20  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 200152
+	2013-06-17  Sofiane Naci  <sofiane.naci@arm.com>
+
+	* config/aarch64/aarch64-simd.md (aarch64_dup_lane<mode>): Add r<-w
+	alternative and update.
+	(aarch64_dup_lanedi): Delete.
+	* config/aarch64/arm_neon.h (vdup<bhsd>_lane_*): Update.
+	* config/aarch64/aarch64-simd-builtins.def: Update.
+
+2013-06-20  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 200061
+	2013-06-13  Bin Cheng  <bin.cheng@arm.com>
+
+	* rtlanal.c (noop_move_p): Check the code to be executed for
+	COND_EXEC.
+
+2013-06-20  Rob Savoye  <rob.savoye@linaro.org>
+
+	Backport from trunk 199694
+	2013-06-05  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/arm/arm.c (MAX_INSN_PER_IT_BLOCK): New macro.
+	(arm_option_override): Override arm_restrict_it where appropriate.
+	(thumb2_final_prescan_insn): Use MAX_INSN_PER_IT_BLOCK.
+	* config/arm/arm.opt (mrestrict-it): New command-line option.
+	* doc/invoke.texi: Document -mrestrict-it.
+
+2013-06-20  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	Backport from trunk r198683.
+	2013-05-07  Christophe Lyon  <christophe.lyon@linaro.org>
+
+	* config/arm/arm.c (arm_asan_shadow_offset): New function.
+	(TARGET_ASAN_SHADOW_OFFSET): Define.
+	* config/arm/linux-eabi.h (ASAN_CC1_SPEC): Define.
+	(LINUX_OR_ANDROID_CC): Add ASAN_CC1_SPEC.
+
 2013-06-11  Rob Savoye  <rob.savoye@linaro.org>
 
         GCC Linaro gcc-linaro-4.8-2013.06 released.
