@@ -1,3 +1,104 @@
+2013-08-05  Yvan Roux  <yvan.roux@linaro.org>
+
+	Backport from trunk r200922.
+	2013-07-12  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* config/aarch64/aarch64-protos.h
+	(aarch64_simd_immediate_valid_for_move): Remove.
+	* config/aarch64/aarch64.c (simd_immediate_info): New member.
+	(aarch64_simd_valid_immediate): Recognize idioms for shifting ones
+	cases.
+	(aarch64_output_simd_mov_immediate): Print the correct shift specifier.
+
+2013-08-05  Yvan Roux  <yvan.roux@linaro.org>
+
+	Backport from trunk r200670.
+	2013-07-04  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* config/aarch64/aarch64-protos.h (cpu_vector_cost): New.
+	(tune_params): New member 'const vec_costs'.
+	* config/aarch64/aarch64.c (generic_vector_cost): New.
+	(generic_tunings): New member 'generic_vector_cost'.
+	(aarch64_builtin_vectorization_cost): New.
+	(aarch64_add_stmt_cost): New.
+	(TARGET_VECTORIZE_ADD_STMT_COST): New.
+	(TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST): New.
+
+2013-08-05  Yvan Roux  <yvan.roux@linaro.org>
+
+	Backport from trunk r200637.
+	2013-07-03  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* config/aarch64/aarch64.h (enum arm_abi_type): Remove.
+	(ARM_ABI_AAPCS64): Ditto.
+	(arm_abi): Ditto.
+	(ARM_DEFAULT_ABI): Ditto.
+
+2013-08-05  Yvan Roux  <yvan.roux@linaro.org>
+
+	Backport from trunk r200532, r200565.
+	2013-06-28  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* config/aarch64/aarch64.c (aarch64_cannot_force_const_mem): Adjust
+	layout.
+
+	2013-06-29  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* config/aarch64/aarch64.c: Remove junk from the beginning of the
+	file.
+
+2013-08-05  Yvan Roux  <yvan.roux@linaro.org>
+
+	Backport from trunk r200531.
+	2013-06-28  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* config/aarch64/aarch64-protos.h (aarch64_symbol_type):
+	Update comment w.r.t SYMBOL_TINY_ABSOLUTE.
+
+2013-08-05  Yvan Roux  <yvan.roux@linaro.org>
+
+	Backport from trunk r200519.
+	2013-06-28  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* config/aarch64/aarch64-protos.h
+	aarch64_classify_symbol_expression): Define.
+	(aarch64_symbolic_constant_p): Remove.
+	* config/aarch64/aarch64.c (aarch64_classify_symbol_expression): Remove
+	static.  Fix line length and white space.
+	(aarch64_symbolic_constant_p): Remove.
+	* config/aarch64/predicates.md (aarch64_valid_symref):
+	Use aarch64_classify_symbol_expression.
+
+2013-08-05  Yvan Roux  <yvan.roux@linaro.org>
+
+	Backport from trunk r200466, r200467.
+	2013-06-27  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* config/aarch64/aarch64.c (aarch64_force_temporary): Add an extra
+	parameter 'mode' of type 'enum machine_mode mode'; change to pass
+	'mode' to force_reg.
+	(aarch64_add_offset): Update calls to aarch64_force_temporary.
+	(aarch64_expand_mov_immediate): Likewise.
+
+	2013-06-27  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* config/aarch64/aarch64.c (aarch64_add_offset): Change to pass
+	'mode' to aarch64_plus_immediate and gen_rtx_PLUS.
+
+2013-08-05  Yvan Roux  <yvan.roux@linaro.org>
+
+	Backport from trunk r200419.
+	2013-06-26  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* config/arm/arm.h (MAX_CONDITIONAL_EXECUTE): Define macro.
+	* config/arm/arm-protos.h (arm_max_conditional_execute): New
+	declaration.
+	(tune_params): Update comment.
+	* config/arm/arm.c (arm_cortex_a15_tune): Set max_cond_insns to 2.
+	(arm_max_conditional_execute): New function.
+	(thumb2_final_prescan_insn): Use max_insn_skipped and
+	MAX_INSN_PER_IT_BLOCK to compute maximum instructions in a block.
+
 2013-07-24  Matthew Gretton-Dann  <matthew.gretton-dann@linaro.org>
 
 	* LINARO-VERSION: Bump version.
@@ -7,7 +108,7 @@
         GCC Linaro 4.8-2013.07-1 released.
 
 2013-07-19  Matthew Gretton-Dann  <matthew.gretton-dann@linaro.org>
-	
+
 	Backport from trunk r201005.
 	2013-07-17  Yvan Roux  <yvan.roux@linaro.org>
 
