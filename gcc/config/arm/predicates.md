@@ -299,6 +299,12 @@
                     || maybe_get_arm_condition_code (op) == ARM_NE
                     || maybe_get_arm_condition_code (op) == ARM_VC")))
 
+(define_special_predicate "arm_cond_move_operator"
+  (if_then_else (match_test "arm_restrict_it")
+                (and (match_test "TARGET_FPU_ARMV8")
+                     (match_operand 0 "arm_vsel_comparison_operator"))
+                (match_operand 0 "expandable_comparison_operator")))
+
 (define_special_predicate "noov_comparison_operator"
   (match_code "lt,ge,eq,ne"))
 
@@ -635,3 +641,7 @@
 (define_predicate "mem_noofs_operand"
   (and (match_code "mem")
        (match_code "reg" "0")))
+
+(define_predicate "call_insn_operand"
+  (ior (match_code "symbol_ref")
+       (match_operand 0 "s_register_operand")))

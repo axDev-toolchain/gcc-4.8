@@ -2177,6 +2177,14 @@ arm_option_override (void)
                          global_options.x_param_values,
                          global_options_set.x_param_values);
 
+  /* Disable shrink-wrap when optimizing function for size, since it tends to
+     generate additional returns.  */
+  if (optimize_function_for_size_p (cfun) && TARGET_THUMB2)
+    flag_shrink_wrap = false;
+  /* TBD: Dwarf info for apcs frame is not handled yet.  */
+  if (TARGET_APCS_FRAME)
+    flag_shrink_wrap = false;
+
   /* Register global variables with the garbage collector.  */
   arm_add_gc_roots ();
 }
@@ -2524,6 +2532,18 @@ use_return_insn (int iscond, rtx sibling)
 	return 0;
 
   return 1;
+}
+
+/* Return TRUE if we should try to use a simple_return insn, i.e. perform
+   shrink-wrapping if possible.  This is the case if we need to emit a
+   prologue, which we can test by looking at the offsets.  */
+bool
+use_simple_return_p (void)
+{
+  arm_stack_offsets *offsets;
+
+  offsets = arm_get_frame_offsets ();
+  return offsets->outgoing_args != 0;
 }
 
 /* Return TRUE if int I is a valid immediate ARM constant.  */
@@ -5385,9 +5405,8 @@ arm_function_ok_for_sibcall (tree decl, tree exp)
   if (cfun->machine->sibcall_blocked)
     return false;
 
-  /* Never tailcall something for which we have no decl, or if we
-     are generating code for Thumb-1.  */
-  if (decl == NULL || TARGET_THUMB1)
+  /* Never tailcall something if we are generating code for Thumb-1.  */
+  if (TARGET_THUMB1)
     return false;
 
   /* The PIC register is live on entry to VxWorks PLT entries, so we
@@ -5397,13 +5416,14 @@ arm_function_ok_for_sibcall (tree decl, tree exp)
 
   /* Cannot tail-call to long calls, since these are out of range of
      a branch instruction.  */
-  if (arm_is_long_call_p (decl))
+  if (decl && arm_is_long_call_p (decl))
     return false;
 
   /* If we are interworking and the function is not declared static
      then we can't tail-call it unless we know that it exists in this
      compilation unit (since it might be a Thumb routine).  */
-  if (TARGET_INTERWORK && TREE_PUBLIC (decl) && !TREE_ASM_WRITTEN (decl))
+  if (TARGET_INTERWORK && decl && TREE_PUBLIC (decl)
+      && !TREE_ASM_WRITTEN (decl))
     return false;
 
   func_type = arm_current_func_type ();
@@ -5435,6 +5455,7 @@ arm_function_ok_for_sibcall (tree decl, tree exp)
      sibling calls.  */
   if (TARGET_AAPCS_BASED
       && arm_abi == ARM_ABI_AAPCS
+      && decl
       && DECL_WEAK (decl))
     return false;
 
@@ -17156,6 +17177,19 @@ emit_multi_reg_push (unsigned long mask)
   return par;
 }
 
+/* Add a REG_CFA_ADJUST_CFA REG note to INSN.
+   SIZE is the offset to be adjusted.
+   DEST and SRC might be stack_pointer_rtx or hard_frame_pointer_rtx.  */
+static void
+arm_add_cfa_adjust_cfa_note (rtx insn, int size, rtx dest, rtx src)
+{
+  rtx dwarf;
+
+  RTX_FRAME_RELATED_P (insn) = 1;
+  dwarf = gen_rtx_SET (VOIDmode, dest, plus_constant (Pmode, src, size));
+  add_reg_note (insn, REG_CFA_ADJUST_CFA, dwarf);
+}
+
 /* Generate and emit an insn pattern that we will recognize as a pop_multi.
    SAVED_REGS_MASK shows which registers need to be restored.
 
@@ -17246,6 +17280,9 @@ arm_emit_multi_reg_pop (unsigned long saved_regs_mask)
     par = emit_insn (par);
 
   REG_NOTES (par) = dwarf;
+  if (!return_in_pc)
+    arm_add_cfa_adjust_cfa_note (par, UNITS_PER_WORD * num_regs,
+				 stack_pointer_rtx, stack_pointer_rtx);
 }
 
 /* Generate and emit an insn pattern that we will recognize as a pop_multi
@@ -17316,6 +17353,9 @@ arm_emit_vfp_multi_reg_pop (int first_reg, int num_regs, rtx base_reg)
 
   par = emit_insn (par);
   REG_NOTES (par) = dwarf;
+
+  arm_add_cfa_adjust_cfa_note (par, 2 * UNITS_PER_WORD * num_regs,
+			       base_reg, base_reg);
 }
 
 /* Generate and emit a pattern that will be recognized as LDRD pattern.  If even
@@ -17391,6 +17431,7 @@ thumb2_emit_ldrd_pop (unsigned long saved_regs_mask)
                pattern can be emitted now.  */
             par = emit_insn (par);
             REG_NOTES (par) = dwarf;
+	    RTX_FRAME_RELATED_P (par) = 1;
           }
 
         i++;
@@ -17407,7 +17448,12 @@ thumb2_emit_ldrd_pop (unsigned long saved_regs_mask)
                      stack_pointer_rtx,
                      plus_constant (Pmode, stack_pointer_rtx, 4 * i));
   RTX_FRAME_RELATED_P (tmp) = 1;
-  emit_insn (tmp);
+  tmp = emit_insn (tmp);
+  if (!return_in_pc)
+    {
+      arm_add_cfa_adjust_cfa_note (tmp, UNITS_PER_WORD * i,
+				   stack_pointer_rtx, stack_pointer_rtx);
+    }
 
   dwarf = NULL_RTX;
 
@@ -17441,9 +17487,11 @@ thumb2_emit_ldrd_pop (unsigned long saved_regs_mask)
       else
         {
           par = emit_insn (tmp);
+	  REG_NOTES (par) = dwarf;
+	  arm_add_cfa_adjust_cfa_note (par, UNITS_PER_WORD,
+				       stack_pointer_rtx, stack_pointer_rtx);
         }
 
-      REG_NOTES (par) = dwarf;
     }
   else if ((num_regs % 2) == 1 && return_in_pc)
     {
@@ -17602,11 +17650,27 @@ thumb_force_lr_save (void)
 	     || df_regs_ever_live_p (LR_REGNUM));
 }
 
+/* We do not know if r3 will be available because
+   we do have an indirect tailcall happening in this
+   particular case.  */
+static bool
+is_indirect_tailcall_p (rtx call)
+{
+  rtx pat = PATTERN (call);
+
+  /* Indirect tail call.  */
+  pat = XVECEXP (pat, 0, 0);
+  if (GET_CODE (pat) == SET)
+    pat = SET_SRC (pat);
+
+  pat = XEXP (XEXP (pat, 0), 0);
+  return REG_P (pat);
+}
 
 /* Return true if r3 is used by any of the tail call insns in the
    current function.  */
 static bool
-any_sibcall_uses_r3 (void)
+any_sibcall_could_use_r3 (void)
 {
   edge_iterator ei;
   edge e;
@@ -17620,7 +17684,8 @@ any_sibcall_uses_r3 (void)
 	if (!CALL_P (call))
 	  call = prev_nonnote_nondebug_insn (call);
 	gcc_assert (CALL_P (call) && SIBLING_CALL_P (call));
-	if (find_regno_fusage (call, USE, 3))
+	if (find_regno_fusage (call, USE, 3)
+	    || is_indirect_tailcall_p (call))
 	  return true;
       }
   return false;
@@ -17787,7 +17852,7 @@ arm_get_frame_offsets (void)
 	  /* If it is safe to use r3, then do so.  This sometimes
 	     generates better code on Thumb-2 by avoiding the need to
 	     use 32-bit push/pop instructions.  */
-          if (! any_sibcall_uses_r3 ()
+          if (! any_sibcall_could_use_r3 ()
 	      && arm_size_return_regs () <= 12
 	      && (offsets->saved_regs_mask & (1 << 3)) == 0
               && (TARGET_THUMB2 || !current_tune->prefer_ldrd_strd))
@@ -24001,7 +24066,7 @@ thumb1_expand_prologue (void)
    all we really need to check here is if single register is to be
    returned, or multiple register return.  */
 void
-thumb2_expand_return (void)
+thumb2_expand_return (bool simple_return)
 {
   int i, num_regs;
   unsigned long saved_regs_mask;
@@ -24014,7 +24079,7 @@ thumb2_expand_return (void)
     if (saved_regs_mask & (1 << i))
       num_regs++;
 
-  if (saved_regs_mask)
+  if (!simple_return && saved_regs_mask)
     {
       if (num_regs == 1)
         {
@@ -24292,6 +24357,7 @@ arm_expand_epilogue (bool really_return)
 
   if (frame_pointer_needed)
     {
+      rtx insn;
       /* Restore stack pointer if necessary.  */
       if (TARGET_ARM)
         {
@@ -24302,9 +24368,12 @@ arm_expand_epilogue (bool really_return)
           /* Force out any pending memory operations that reference stacked data
              before stack de-allocation occurs.  */
           emit_insn (gen_blockage ());
-          emit_insn (gen_addsi3 (stack_pointer_rtx,
-                                 hard_frame_pointer_rtx,
-                                 GEN_INT (amount)));
+	  insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
+			    hard_frame_pointer_rtx,
+			    GEN_INT (amount)));
+	  arm_add_cfa_adjust_cfa_note (insn, amount,
+				       stack_pointer_rtx,
+				       hard_frame_pointer_rtx);
 
           /* Emit USE(stack_pointer_rtx) to ensure that stack adjustment is not
              deleted.  */
@@ -24314,16 +24383,25 @@ arm_expand_epilogue (bool really_return)
         {
           /* In Thumb-2 mode, the frame pointer points to the last saved
              register.  */
-          amount = offsets->locals_base - offsets->saved_regs;
-          if (amount)
-            emit_insn (gen_addsi3 (hard_frame_pointer_rtx,
-                                   hard_frame_pointer_rtx,
-                                   GEN_INT (amount)));
+	  amount = offsets->locals_base - offsets->saved_regs;
+	  if (amount)
+	    {
+	      insn = emit_insn (gen_addsi3 (hard_frame_pointer_rtx,
+				hard_frame_pointer_rtx,
+				GEN_INT (amount)));
+	      arm_add_cfa_adjust_cfa_note (insn, amount,
+					   hard_frame_pointer_rtx,
+					   hard_frame_pointer_rtx);
+	    }
 
           /* Force out any pending memory operations that reference stacked data
              before stack de-allocation occurs.  */
           emit_insn (gen_blockage ());
-          emit_insn (gen_movsi (stack_pointer_rtx, hard_frame_pointer_rtx));
+	  insn = emit_insn (gen_movsi (stack_pointer_rtx,
+				       hard_frame_pointer_rtx));
+	  arm_add_cfa_adjust_cfa_note (insn, 0,
+				       stack_pointer_rtx,
+				       hard_frame_pointer_rtx);
           /* Emit USE(stack_pointer_rtx) to ensure that stack adjustment is not
              deleted.  */
           emit_insn (gen_force_register_use (stack_pointer_rtx));
@@ -24336,12 +24414,15 @@ arm_expand_epilogue (bool really_return)
       amount = offsets->outgoing_args - offsets->saved_regs;
       if (amount)
         {
+	  rtx tmp;
           /* Force out any pending memory operations that reference stacked data
              before stack de-allocation occurs.  */
           emit_insn (gen_blockage ());
-          emit_insn (gen_addsi3 (stack_pointer_rtx,
-                                 stack_pointer_rtx,
-                                 GEN_INT (amount)));
+	  tmp = emit_insn (gen_addsi3 (stack_pointer_rtx,
+				       stack_pointer_rtx,
+				       GEN_INT (amount)));
+	  arm_add_cfa_adjust_cfa_note (tmp, amount,
+				       stack_pointer_rtx, stack_pointer_rtx);
           /* Emit USE(stack_pointer_rtx) to ensure that stack adjustment is
              not deleted.  */
           emit_insn (gen_force_register_use (stack_pointer_rtx));
@@ -24394,6 +24475,8 @@ arm_expand_epilogue (bool really_return)
           REG_NOTES (insn) = alloc_reg_note (REG_CFA_RESTORE,
                                              gen_rtx_REG (V2SImode, i),
                                              NULL_RTX);
+	  arm_add_cfa_adjust_cfa_note (insn, UNITS_PER_WORD,
+				       stack_pointer_rtx, stack_pointer_rtx);
         }
 
   if (saved_regs_mask)
@@ -24441,6 +24524,9 @@ arm_expand_epilogue (bool really_return)
                     REG_NOTES (insn) = alloc_reg_note (REG_CFA_RESTORE,
                                                        gen_rtx_REG (SImode, i),
                                                        NULL_RTX);
+		    arm_add_cfa_adjust_cfa_note (insn, UNITS_PER_WORD,
+						 stack_pointer_rtx,
+						 stack_pointer_rtx);
                   }
               }
         }
@@ -24465,9 +24551,33 @@ arm_expand_epilogue (bool really_return)
     }
 
   if (crtl->args.pretend_args_size)
-    emit_insn (gen_addsi3 (stack_pointer_rtx,
-                           stack_pointer_rtx,
-                           GEN_INT (crtl->args.pretend_args_size)));
+    {
+      int i, j;
+      rtx dwarf = NULL_RTX;
+      rtx tmp = emit_insn (gen_addsi3 (stack_pointer_rtx,
+			   stack_pointer_rtx,
+			   GEN_INT (crtl->args.pretend_args_size)));
+
+      RTX_FRAME_RELATED_P (tmp) = 1;
+
+      if (cfun->machine->uses_anonymous_args)
+	{
+	  /* Restore pretend args.  Refer arm_expand_prologue on how to save
+	     pretend_args in stack.  */
+	  int num_regs = crtl->args.pretend_args_size / 4;
+	  saved_regs_mask = (0xf0 >> num_regs) & 0xf;
+	  for (j = 0, i = 0; j < num_regs; i++)
+	    if (saved_regs_mask & (1 << i))
+	      {
+		rtx reg = gen_rtx_REG (SImode, i);
+		dwarf = alloc_reg_note (REG_CFA_RESTORE, reg, dwarf);
+		j++;
+	      }
+	  REG_NOTES (tmp) = dwarf;
+	}
+      arm_add_cfa_adjust_cfa_note (tmp, crtl->args.pretend_args_size,
+				   stack_pointer_rtx, stack_pointer_rtx);
+    }
 
   if (!really_return)
     return;
@@ -26135,9 +26245,17 @@ arm_unwind_emit (FILE * asm_out_file, rtx insn)
 	  handled_one = true;
 	  break;
 
+	/* The INSN is generated in epilogue.  It is set as RTX_FRAME_RELATED_P
+	   to get correct dwarf information for shrink-wrap.  We should not
+	   emit unwind information for it because these are used either for
+	   pretend arguments or notes to adjust sp and restore registers from
+	   stack.  */
+	case REG_CFA_ADJUST_CFA:
+	case REG_CFA_RESTORE:
+	  return;
+
 	case REG_CFA_DEF_CFA:
 	case REG_CFA_EXPRESSION:
-	case REG_CFA_ADJUST_CFA:
 	case REG_CFA_OFFSET:
 	  /* ??? Only handling here what we actually emit.  */
 	  gcc_unreachable ();
